@@ -1,0 +1,51 @@
+name: Build APK
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Build APK
+        run: |
+          chmod +x gradlew 2>/dev/null || true
+          ./gradlew assembleDebug 2>/dev/null || (
+            # If no gradlew, use gradle directly
+            gradle assembleDebug
+          )
+
+      - name: Find APK
+        id: find_apk
+        run: |
+          APK=$(find . -name "*.apk" -path "*/debug/*" | head -1)
+          echo "apk_path=$APK" >> $GITHUB_OUTPUT
+          echo "Found: $APK"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: overlay-apk
+          path: ${{ steps.find_apk.outputs.apk_path }}
+
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.find_apk.outputs.apk_path }}
+          generate_release_notes: true
+          token: ${{ secrets.GITHUB_TOKEN }}

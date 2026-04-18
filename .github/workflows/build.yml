@@ -48,4 +48,4 @@ jobs:
         with:
           files: ${{ steps.find_apk.outputs.apk_path }}
           generate_release_notes: true
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PAT_TOKEN }}
